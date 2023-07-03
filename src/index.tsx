@@ -1,6 +1,5 @@
-import React, { FC } from 'react'
+import React from 'react'
 import { createRoot } from 'react-dom/client'
-
-const App: FC = () => <p>hello</p>
+import { App } from './App'
 
 createRoot(document.getElementById('app')!).render(<App />)
