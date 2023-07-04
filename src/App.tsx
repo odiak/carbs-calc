@@ -1,5 +1,6 @@
-import React, { FC, useCallback, useEffect, useState } from 'react'
-import { CellObject, WorkBook, read } from 'xlsx'
+import React, { FC, useEffect, useState } from 'react'
+import { CellObject, read } from 'xlsx'
+import { styled } from '../styled-system/jsx'
 
 type Item = {
   name: string
@@ -49,14 +50,14 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <>
+    <styled.div p={4}>
       <h1>炭水化物量計算くん</h1>
       {items === undefined ? (
         <p>データを読み込み中です</p>
       ) : (
         <Calculator allItems={items} />
       )}
-    </>
+    </styled.div>
   )
 }
 
@@ -112,17 +113,21 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     })
   }
 
+  const total = items
+    .map((item) => (item.amount * item.carbs) / 100)
+    .reduce((sum, c) => sum + c, 0)
+
   return (
     <>
       <div>
-        <input
+        <styled.input
           type="text"
           value={searchText}
           onChange={(e) => updateSearchText(e.target.value)}
           placeholder="食品名を入力してください"
           onKeyDown={onKeyDown}
-          size={60}
-          style={{ maxWidth: '100%' }}
+          htmlSize={60}
+          maxW="100%"
         />
         <div>
           {suggestions.map((item, i) => (
@@ -132,48 +137,44 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           ))}
         </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>食品名</th>
-            <th>炭水化物量(%)</th>
-            <th>重量</th>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, i) => (
-            <tr key={i}>
-              <td>{item.name}</td>
-              <td>{item.carbs}%</td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={item.amount}
-                  onChange={(e) => setAmount(i, Number(e.target.value || 0))}
-                />
-              </td>
-              <td>
-                <button onClick={() => deleteItem(i)}>削除</button>
-              </td>
+      {items.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>食品名</th>
+              <th>炭水化物量(%)</th>
+              <th>重量</th>
+              <td></td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr key={i}>
+                <td>{item.name}</td>
+                <td>{item.carbs}%</td>
+                <td>
+                  <styled.input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={item.amount}
+                    onChange={(e) => setAmount(i, Number(e.target.value || 0))}
+                    maxW={50}
+                  />
+                </td>
+                <td>
+                  <button onClick={() => deleteItem(i)}>削除</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {items.length === 0 ? (
         <p>食品を選択してください</p>
       ) : (
-        <p>
-          合計炭水化物量:{' '}
-          {items
-            .map((item) => (item.amount * item.carbs) / 100)
-            .reduce((sum, c) => sum + c, 0)
-            .toFixed(1)}
-          g
-        </p>
+        <p>合計炭水化物量: {total.toFixed(1)}g</p>
       )}
     </>
   )
