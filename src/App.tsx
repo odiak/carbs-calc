@@ -78,6 +78,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     try {
       const data = decode(hash.slice(1)) as {
         v: number
+        carbRatio: number
         items: [number, number][]
       }
       if (data.v !== dataVersion) return
@@ -87,6 +88,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           ...allItems[i],
           amount,
         })),
+        carbRatio: data.carbRatio,
       }
     } catch (e) {
       return undefined
@@ -98,15 +100,17 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const [items, setItems] = useState<ItemWithAmount[]>(
     dataFromHash?.items ?? []
   )
+  const [carbRatio, setCarbRatio] = useState(dataFromHash?.carbRatio ?? 0)
 
-  const updateHash = (items: ItemWithAmount[]) => {
-    if (items.length === 0) {
+  const updateHash = (items: ItemWithAmount[], carbRatio: number) => {
+    if (items.length === 0 && carbRatio === 0) {
       location.hash = ''
       return
     }
 
     location.hash = encode({
       v: dataVersion,
+      carbRatio,
       items: items.map((it) => [it.index, it.amount]),
     })
   }
@@ -137,7 +141,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const selectItem = (item: Item) => {
     setItems((items) => {
       const newItems = [...items, { ...item, amount: 0 }]
-      updateHash(newItems)
+      updateHash(newItems, carbRatio)
       return newItems
     })
     setSearchText('')
@@ -148,7 +152,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems[i] = { ...items[i], amount }
-      updateHash(newItems)
+      updateHash(newItems, carbRatio)
       return newItems
     })
   }
@@ -157,7 +161,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems.splice(i, 1)
-      updateHash(newItems)
+      updateHash(newItems, carbRatio)
       return newItems
     })
   }
@@ -192,7 +196,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             <tr>
               <th>食品名</th>
               <th>炭水化物量(%)</th>
-              <th>重量</th>
+              <th>重量(g)</th>
               <td></td>
             </tr>
           </thead>
@@ -223,8 +227,33 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       {items.length === 0 ? (
         <p>食品を選択してください</p>
       ) : (
-        <p>合計炭水化物量: {total.toFixed(1)}g</p>
+        <>
+          <hr />
+          <p>合計炭水化物量: {total.toFixed(1)}g</p>
+        </>
       )}
+
+      <hr />
+
+      <div>
+        <label>
+          糖質インスリン比:{' '}
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={carbRatio}
+            onChange={(e) => {
+              const newCarbRatio = Number(e.target.value || 0)
+              setCarbRatio(newCarbRatio)
+              updateHash(items, newCarbRatio)
+            }}
+          />
+        </label>
+        {carbRatio !== 0 && items.length !== 0 && (
+          <p>インスリン量: {(total / carbRatio).toFixed(2)}</p>
+        )}
+      </div>
     </>
   )
 }
