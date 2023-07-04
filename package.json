@@ -7,6 +7,7 @@
     "postinstall": "panda codegen"
   },
   "dependencies": {
+    "@msgpack/msgpack": "^3.0.0-beta2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "xlsx": "^0.18.5"

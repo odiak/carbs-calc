@@ -1,10 +1,15 @@
-import React, { FC, useEffect, useState } from 'react'
+import React, { FC, useEffect, useMemo, useState } from 'react'
 import { CellObject, read } from 'xlsx'
 import { styled } from '../styled-system/jsx'
+import {
+  decode as decodeMsgpack,
+  encode as encodeMsgpack,
+} from '@msgpack/msgpack'
 
 type Item = {
   name: string
   carbs: number
+  index: number
 }
 
 type ItemWithAmount = Item & { amount: number }
@@ -25,6 +30,7 @@ export const App: FC = () => {
 
       const items: Item[] = []
 
+      let i = 0
       for (const key of Object.keys(sheet)) {
         if (!key.startsWith('D')) continue
         const name = (sheet[key] as CellObject).w ?? ''
@@ -38,7 +44,8 @@ export const App: FC = () => {
           .find((v) => v !== undefined)
         const carbs = Number(carbsText ?? '0')
 
-        items.push({ name, carbs })
+        items.push({ name, carbs, index: i })
+        i++
       }
 
       setItems(items)
@@ -50,7 +57,7 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <styled.div p={4}>
+    <styled.div p={2}>
       <h1>炭水化物量計算くん</h1>
       {items === undefined ? (
         <p>データを読み込み中です</p>
@@ -61,12 +68,48 @@ export const App: FC = () => {
   )
 }
 
+const dataVersion = 2020
+
 const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
+  const dataFromHash = useMemo(() => {
+    const hash = location.hash
+    if (hash === '' || hash === '#') return undefined
+
+    try {
+      const data = decode(hash.slice(1)) as {
+        v: number
+        items: [number, number][]
+      }
+      if (data.v !== dataVersion) return
+
+      return {
+        items: data.items.map(([i, amount]) => ({
+          ...allItems[i],
+          amount,
+        })),
+      }
+    } catch (e) {
+      return undefined
+    }
+  }, [])
+
   const [searchText, setSearchText] = useState('')
   const [suggestions, setSuggestions] = useState<Item[]>([])
-  const [items, setItems] = useState<ItemWithAmount[]>([])
+  const [items, setItems] = useState<ItemWithAmount[]>(
+    dataFromHash?.items ?? []
+  )
 
-  const updateHash = (items: ItemWithAmount[]) => {}
+  const updateHash = (items: ItemWithAmount[]) => {
+    if (items.length === 0) {
+      location.hash = ''
+      return
+    }
+
+    location.hash = encode({
+      v: dataVersion,
+      items: items.map((it) => [it.index, it.amount]),
+    })
+  }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
@@ -92,7 +135,11 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   }
 
   const selectItem = (item: Item) => {
-    setItems((items) => [...items, { ...item, amount: 0 }])
+    setItems((items) => {
+      const newItems = [...items, { ...item, amount: 0 }]
+      updateHash(newItems)
+      return newItems
+    })
     setSearchText('')
     setSuggestions([])
   }
@@ -101,6 +148,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems[i] = { ...items[i], amount }
+      updateHash(newItems)
       return newItems
     })
   }
@@ -109,6 +157,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems.splice(i, 1)
+      updateHash(newItems)
       return newItems
     })
   }
@@ -127,7 +176,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           placeholder="食品名を入力してください"
           onKeyDown={onKeyDown}
           htmlSize={60}
-          maxW="100%"
+          maxW="95%"
         />
         <div>
           {suggestions.map((item, i) => (
@@ -178,4 +227,14 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       )}
     </>
   )
+}
+
+function encode(data: unknown): string {
+  const m = encodeMsgpack(data)
+  return btoa(String.fromCharCode(...m))
+}
+
+function decode(str: string): unknown {
+  const raw = atob(str)
+  return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
 }
