@@ -71,29 +71,7 @@ export const App: FC = () => {
 const dataVersion = 2020
 
 const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
-  const dataFromHash = useMemo(() => {
-    const hash = location.hash
-    if (hash === '' || hash === '#') return undefined
-
-    try {
-      const data = decode(hash.slice(1)) as {
-        v: number
-        carbRatio: number
-        items: [number, number][]
-      }
-      if (data.v !== dataVersion) return
-
-      return {
-        items: data.items.map(([i, amount]) => ({
-          ...allItems[i],
-          amount,
-        })),
-        carbRatio: data.carbRatio,
-      }
-    } catch (e) {
-      return undefined
-    }
-  }, [])
+  const dataFromHash = useMemo(() => decodeHash(location.hash, allItems), [])
 
   const [searchText, setSearchText] = useState('')
   const [suggestions, setSuggestions] = useState<Item[]>([])
@@ -114,6 +92,18 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       items: items.map((it) => [it.index, it.amount]),
     })
   }
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const dataFromHash = decodeHash(location.hash, allItems)
+      setItems(dataFromHash?.items ?? [])
+      setCarbRatio(dataFromHash?.carbRatio ?? 0)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+    }
+  }, [allItems])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
@@ -254,6 +244,16 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           <p>インスリン量: {(total / carbRatio).toFixed(2)}</p>
         )}
       </div>
+
+      <hr />
+
+      <button
+        onClick={() => {
+          location.hash = ''
+        }}
+      >
+        リセット
+      </button>
     </>
   )
 }
@@ -266,4 +266,27 @@ function encode(data: unknown): string {
 function decode(str: string): unknown {
   const raw = atob(str)
   return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
+}
+
+function decodeHash(hash: string, allItems: Item[]) {
+  if (hash === '' || hash === '#') return undefined
+
+  try {
+    const data = decode(hash.slice(1)) as {
+      v: number
+      carbRatio: number
+      items: [number, number][]
+    }
+    if (data.v !== dataVersion) return
+
+    return {
+      items: data.items.map(([i, amount]) => ({
+        ...allItems[i],
+        amount,
+      })),
+      carbRatio: data.carbRatio,
+    }
+  } catch (e) {
+    return undefined
+  }
 }
