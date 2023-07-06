@@ -5,6 +5,7 @@ import {
   decode as decodeMsgpack,
   encode as encodeMsgpack,
 } from '@msgpack/msgpack'
+import { css } from '../styled-system/css'
 
 type Item = {
   name: string
@@ -57,8 +58,40 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <styled.div p={2}>
-      <h1>炭水化物量計算くん</h1>
+    <styled.div px={2}>
+      <styled.h1 fontSize="x-large">炭水化物量計算くん</styled.h1>
+      <p>
+        いくつか食材を選んでその重量を入力すると、合計の炭水化物量が分かります。
+      </p>
+      <details className={css({ mb: 4 })}>
+        <summary>その他の説明</summary>
+        <div
+          className={css({
+            border: '1px solid',
+            borderColor: 'gray.400',
+            rounded: 6,
+            p: 2,
+          })}
+        >
+          <p>
+            食材が検索できない場合は、キーワードや表記を変えて試してみてください。
+            <br />
+            （例: 片栗粉→でん粉、人参→にんじん）
+          </p>
+          <p>
+            このページのリンクを誰かに送ると、内容をシェアすることができます。
+            <br />
+            (シェアした後に編集しても相手には反映されません。)
+          </p>
+          <p>
+            <a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_01110.html">
+              日本食品標準成分表2020年版（八訂）
+            </a>
+            のデータを使用しています。
+          </p>
+        </div>
+      </details>
+
       {items === undefined ? (
         <p>データを読み込み中です</p>
       ) : (
@@ -227,7 +260,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
       <div>
         <label>
-          糖質インスリン比:{' '}
+          糖質インスリン比(g/U):{' '}
           <input
             type="number"
             min="0"
@@ -241,7 +274,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           />
         </label>
         {carbRatio !== 0 && items.length !== 0 && (
-          <p>インスリン量: {(total / carbRatio).toFixed(2)}</p>
+          <p>インスリン量: {(total / carbRatio).toFixed(2)}U</p>
         )}
       </div>
 
