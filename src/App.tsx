@@ -113,6 +113,8 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   )
   const [carbRatio, setCarbRatio] = useState(dataFromHash?.carbRatio ?? 0)
 
+  const [showingToast, setShowingToast] = useState(false)
+
   const updateHash = (items: ItemWithAmount[], carbRatio: number) => {
     if (items.length === 0 && carbRatio === 0) {
       location.hash = ''
@@ -187,6 +189,12 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       updateHash(newItems, carbRatio)
       return newItems
     })
+  }
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(location.href)
+    setShowingToast(true)
+    setTimeout(() => setShowingToast(false), 2000)
   }
 
   const total = items
@@ -284,9 +292,35 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
         onClick={() => {
           location.hash = ''
         }}
+        className={css({ mr: 2 })}
       >
         リセット
       </button>
+      <button onClick={copyLink}>リンクをコピーする</button>
+      {showingToast && (
+        <div
+          className={css({
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            p: 2,
+          })}
+        >
+          <div
+            className={css({
+              mx: 'auto',
+              bg: 'gray.900',
+              color: 'gray.100',
+              width: 'max-content',
+              p: 2,
+              rounded: 4,
+            })}
+          >
+            コピーしました
+          </div>
+        </div>
+      )}
     </>
   )
 }
