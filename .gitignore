@@ -8,3 +8,5 @@ node_modules
 .parcel-cache
 dist
 styled-system
+
+.env.development
