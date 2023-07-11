@@ -9,6 +9,8 @@ const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG ?? '')
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-getAnalytics(app)
+if (location.hostname !== 'localhost') {
+  getAnalytics(app)
+}
 
 createRoot(document.getElementById('app')!).render(<App />)
