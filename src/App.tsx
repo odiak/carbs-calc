@@ -302,11 +302,6 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   )
 }
 
-function encode(data: unknown): string {
-  const m = encodeMsgpack(data)
-  return btoa(String.fromCharCode(...m))
-}
-
 function decode(str: string): unknown {
   const raw = atob(str)
   return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
@@ -365,14 +360,6 @@ function decodeSearch(
   const carbRatio = Number(carbRatioStr ?? 0) || 0
 
   return { items, carbRatio }
-}
-
-function encodeSearch(items: ItemWithAmount[], carbRatio: number): string {
-  const itemsStr = items.map((it) => `${it.code}-${it.amount}`).join('_')
-  return new URLSearchParams({
-    is: itemsStr,
-    icr: String(carbRatio),
-  }).toString()
 }
 
 function useEffectWithAbortSignal(
