@@ -85,20 +85,29 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   const [showingToast, setShowingToast] = useState(false)
 
-  const updateSearch = (items: ItemWithAmount[], carbRatio: number) => {
+  const updateSearch = (
+    items: ItemWithAmount[],
+    carbRatio: number,
+    replace?: boolean
+  ) => {
     const path = location.pathname
 
     if (items.length === 0 && carbRatio === 0) {
-      history.replaceState(null, '', path)
+      history.pushState(null, '', path)
       return
     }
 
     const search = new URLSearchParams({
-      items: items.map((it) => `${it.code}-${it.amount}`).join('_'),
-      carbRatio: String(carbRatio),
+      is: items.map((it) => `${it.code}*${it.amount}`).join('-'),
+      icr: String(carbRatio),
     }).toString()
 
-    history.replaceState(null, '', `${path}?${search}`)
+    const url = `${path}?${search}`
+    if (replace) {
+      history.replaceState(null, '', url)
+    } else {
+      history.pushState(null, '', url)
+    }
   }
 
   useEffect(() => {
@@ -108,6 +117,18 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       setCarbRatio(dataFromSearch.carbRatio)
     }
     window.addEventListener('popstate', onPopState)
+
+    const hash = location.hash
+    if (hash.length > 2) {
+      decodeHash(hash, allItems).then((data) => {
+        if (data !== undefined) {
+          const { items, carbRatio } = data
+          setItems(items)
+          setCarbRatio(carbRatio)
+          updateSearch(items, carbRatio, true)
+        }
+      })
+    }
 
     return () => {
       window.removeEventListener('popstate', onPopState)
@@ -154,7 +175,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       if (item !== undefined) {
         newItems[i] = { ...item, amount }
       }
-      updateSearch(newItems, carbRatio)
+      updateSearch(newItems, carbRatio, true)
       return newItems
     })
   }
@@ -172,6 +193,12 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     navigator.clipboard.writeText(location.href)
     setShowingToast(true)
     setTimeout(() => setShowingToast(false), 2000)
+  }
+
+  const reset = () => {
+    setItems([])
+    setCarbRatio(0)
+    updateSearch([], 0)
   }
 
   const total = items
@@ -265,12 +292,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
       <hr />
 
-      <button
-        onClick={() => {
-          location.hash = ''
-        }}
-        className={css({ mr: 2 })}
-      >
+      <button onClick={reset} className={css({ mr: 2 })}>
         リセット
       </button>
       <button onClick={copyLink}>リンクをコピーする</button>
@@ -302,19 +324,20 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   )
 }
 
-function decode(str: string): unknown {
+async function decode(str: string): Promise<unknown> {
+  const { decode: decodeMsgpack } = await import('@msgpack/msgpack')
   const raw = atob(str)
   return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
 }
 
-function decodeHash(
+async function decodeHash(
   hash: string,
   allItems: Item[]
-): { items: ItemWithAmount[]; carbRatio: number } | undefined {
+): Promise<{ items: ItemWithAmount[]; carbRatio: number } | undefined> {
   if (hash === '' || hash === '#') return undefined
 
   try {
-    const data = decode(hash.slice(1)) as {
+    const data = (await decode(hash.slice(1))) as {
       v: number
       carbRatio: number
       items: [number, number][]
@@ -349,8 +372,8 @@ function decodeSearch(
   const carbRatioStr = params.get('icr')
 
   const items: ItemWithAmount[] = []
-  for (const pair of itemsStr.split('_')) {
-    const [code, amountStr] = pair.split('-')
+  for (const pair of itemsStr.split('-')) {
+    const [code, amountStr] = pair.split('*')
     const amount = Math.max(0, Number(amountStr))
     const item = allItems.find((it) => it.code === code)
     if (Number.isNaN(amount) || item === undefined) continue
