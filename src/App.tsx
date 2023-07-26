@@ -11,6 +11,7 @@ type Item = {
   name: string
   carbs: number
   index: number
+  code: string
 }
 
 type ItemWithAmount = Item & { amount: number }
@@ -347,13 +348,18 @@ async function getItems(signal?: AbortSignal): Promise<Item[]> {
 
   const items: Item[] = []
 
-  let i = 0
   for (const key of Object.keys(sheet)) {
     if (!key.startsWith('D')) continue
-    const name = (sheet[key] as CellObject).w ?? ''
+    const name = (sheet[key] as CellObject).w
 
     const row = Number(key.slice(1))
     if (row < 13) continue
+
+    const code = (sheet[`B${row}`] as CellObject).w
+    const index = Number((sheet[`C${row}`] as CellObject).w ?? Number.NaN) - 1
+
+    if (name === undefined || code === undefined || Number.isNaN(index))
+      continue
 
     const carbsText = ['Q', 'N', 'P']
       .map((col) => sheet[`${col}${row}`] as CellObject | undefined)
@@ -361,8 +367,7 @@ async function getItems(signal?: AbortSignal): Promise<Item[]> {
       .find((v) => v !== undefined)
     const carbs = Number(carbsText ?? '0')
 
-    items.push({ name, carbs, index: i })
-    i++
+    items.push({ name, carbs, index, code })
   }
 
   return items
