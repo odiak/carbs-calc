@@ -18,43 +18,9 @@ type ItemWithAmount = Item & { amount: number }
 export const App: FC = () => {
   const [items, setItems] = useState<Item[] | undefined>()
 
-  useEffect(() => {
-    const ac = new AbortController()
-
-    ;(async () => {
-      const res = await fetch('/data', { signal: ac.signal })
-      const buf = await res.arrayBuffer()
-      const workBook = read(buf)
-
-      const name = workBook.SheetNames[0]
-      const sheet = workBook.Sheets[name]
-
-      const items: Item[] = []
-
-      let i = 0
-      for (const key of Object.keys(sheet)) {
-        if (!key.startsWith('D')) continue
-        const name = (sheet[key] as CellObject).w ?? ''
-
-        const row = Number(key.slice(1))
-        if (row < 13) continue
-
-        const carbsText = ['Q', 'N', 'P']
-          .map((col) => sheet[`${col}${row}`] as CellObject | undefined)
-          .map((cell) => cell?.w?.match(/\d+(?:\.\d+)?/)?.[0])
-          .find((v) => v !== undefined)
-        const carbs = Number(carbsText ?? '0')
-
-        items.push({ name, carbs, index: i })
-        i++
-      }
-
-      setItems(items)
-    })()
-
-    return () => {
-      ac.abort()
-    }
+  useEffectWithAbortSignal(async (signal) => {
+    const items = await getItems(signal)
+    setItems(items)
   }, [])
 
   return (
@@ -356,4 +322,48 @@ function decodeHash(hash: string, allItems: Item[]) {
   } catch (e) {
     return undefined
   }
+}
+
+function useEffectWithAbortSignal(
+  effect: (signal: AbortSignal) => void,
+  deps: unknown[]
+): void {
+  useEffect(() => {
+    const ac = new AbortController()
+    effect(ac.signal)
+    return () => {
+      ac.abort()
+    }
+  }, deps)
+}
+
+async function getItems(signal?: AbortSignal): Promise<Item[]> {
+  const res = await fetch('/data', { signal })
+  const buf = await res.arrayBuffer()
+  const workBook = read(buf)
+
+  const name = workBook.SheetNames[0]
+  const sheet = workBook.Sheets[name]
+
+  const items: Item[] = []
+
+  let i = 0
+  for (const key of Object.keys(sheet)) {
+    if (!key.startsWith('D')) continue
+    const name = (sheet[key] as CellObject).w ?? ''
+
+    const row = Number(key.slice(1))
+    if (row < 13) continue
+
+    const carbsText = ['Q', 'N', 'P']
+      .map((col) => sheet[`${col}${row}`] as CellObject | undefined)
+      .map((cell) => cell?.w?.match(/\d+(?:\.\d+)?/)?.[0])
+      .find((v) => v !== undefined)
+    const carbs = Number(carbsText ?? '0')
+
+    items.push({ name, carbs, index: i })
+    i++
+  }
+
+  return items
 }
