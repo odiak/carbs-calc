@@ -71,39 +71,46 @@ export const App: FC = () => {
 const dataVersion = 2020
 
 const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
-  const dataFromHash = useMemo(() => decodeHash(location.hash, allItems), [])
+  const dataFromSearch = useMemo(
+    () => decodeSearch(location.search, allItems),
+    []
+  )
 
   const [searchText, setSearchText] = useState('')
   const [suggestions, setSuggestions] = useState<Item[]>([])
   const [items, setItems] = useState<ItemWithAmount[]>(
-    dataFromHash?.items ?? []
+    dataFromSearch?.items ?? []
   )
-  const [carbRatio, setCarbRatio] = useState(dataFromHash?.carbRatio ?? 0)
+  const [carbRatio, setCarbRatio] = useState(dataFromSearch.carbRatio)
 
   const [showingToast, setShowingToast] = useState(false)
 
-  const updateHash = (items: ItemWithAmount[], carbRatio: number) => {
+  const updateSearch = (items: ItemWithAmount[], carbRatio: number) => {
+    const path = location.pathname
+
     if (items.length === 0 && carbRatio === 0) {
-      location.hash = ''
+      history.replaceState(null, '', path)
       return
     }
 
-    location.hash = encode({
-      v: dataVersion,
-      carbRatio,
-      items: items.map((it) => [it.index, it.amount]),
-    })
+    const search = new URLSearchParams({
+      items: items.map((it) => `${it.code}-${it.amount}`).join('_'),
+      carbRatio: String(carbRatio),
+    }).toString()
+
+    history.replaceState(null, '', `${path}?${search}`)
   }
 
   useEffect(() => {
-    const onHashChange = () => {
-      const dataFromHash = decodeHash(location.hash, allItems)
-      setItems(dataFromHash?.items ?? [])
-      setCarbRatio(dataFromHash?.carbRatio ?? 0)
+    const onPopState = () => {
+      const dataFromSearch = decodeSearch(location.search, allItems)
+      setItems(dataFromSearch.items)
+      setCarbRatio(dataFromSearch.carbRatio)
     }
-    window.addEventListener('hashchange', onHashChange)
+    window.addEventListener('popstate', onPopState)
+
     return () => {
-      window.removeEventListener('hashchange', onHashChange)
+      window.removeEventListener('popstate', onPopState)
     }
   }, [allItems])
 
@@ -133,7 +140,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const selectItem = (item: Item) => {
     setItems((items) => {
       const newItems = [...items, { ...item, amount: 0 }]
-      updateHash(newItems, carbRatio)
+      updateSearch(newItems, carbRatio)
       return newItems
     })
     setSearchText('')
@@ -143,8 +150,11 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const setAmount = (i: number, amount: number) => {
     setItems((items) => {
       const newItems = [...items]
-      newItems[i] = { ...items[i], amount }
-      updateHash(newItems, carbRatio)
+      const item = items[i]
+      if (item !== undefined) {
+        newItems[i] = { ...item, amount }
+      }
+      updateSearch(newItems, carbRatio)
       return newItems
     })
   }
@@ -153,7 +163,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems.splice(i, 1)
-      updateHash(newItems, carbRatio)
+      updateSearch(newItems, carbRatio)
       return newItems
     })
   }
@@ -244,7 +254,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             onChange={(e) => {
               const newCarbRatio = Number(e.target.value || 0)
               setCarbRatio(newCarbRatio)
-              updateHash(items, newCarbRatio)
+              updateSearch(items, newCarbRatio)
             }}
           />
         </label>
@@ -302,7 +312,10 @@ function decode(str: string): unknown {
   return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
 }
 
-function decodeHash(hash: string, allItems: Item[]) {
+function decodeHash(
+  hash: string,
+  allItems: Item[]
+): { items: ItemWithAmount[]; carbRatio: number } | undefined {
   if (hash === '' || hash === '#') return undefined
 
   try {
@@ -313,16 +326,53 @@ function decodeHash(hash: string, allItems: Item[]) {
     }
     if (data.v !== dataVersion) return
 
+    const items: ItemWithAmount[] = []
+    for (const pair of data.items) {
+      const [index, amount] = pair
+      if (index < 0 || index >= allItems.length) continue
+      const item = allItems[index]
+      if (item !== undefined) {
+        items.push({ ...item, amount })
+      }
+    }
+
     return {
-      items: data.items.map(([i, amount]) => ({
-        ...allItems[i],
-        amount,
-      })),
-      carbRatio: data.carbRatio,
+      ...data,
+      items,
     }
   } catch (e) {
     return undefined
   }
+}
+
+function decodeSearch(
+  search: string,
+  allItems: Item[]
+): { items: ItemWithAmount[]; carbRatio: number } {
+  const params = new URLSearchParams(search)
+  const itemsStr = params.get('is') ?? ''
+  const carbRatioStr = params.get('icr')
+
+  const items: ItemWithAmount[] = []
+  for (const pair of itemsStr.split('_')) {
+    const [code, amountStr] = pair.split('-')
+    const amount = Math.max(0, Number(amountStr))
+    const item = allItems.find((it) => it.code === code)
+    if (Number.isNaN(amount) || item === undefined) continue
+    items.push({ ...item, amount })
+  }
+
+  const carbRatio = Number(carbRatioStr ?? 0) || 0
+
+  return { items, carbRatio }
+}
+
+function encodeSearch(items: ItemWithAmount[], carbRatio: number): string {
+  const itemsStr = items.map((it) => `${it.code}-${it.amount}`).join('_')
+  return new URLSearchParams({
+    is: itemsStr,
+    icr: String(carbRatio),
+  }).toString()
 }
 
 function useEffectWithAbortSignal(
@@ -344,7 +394,9 @@ async function getItems(signal?: AbortSignal): Promise<Item[]> {
   const workBook = read(buf)
 
   const name = workBook.SheetNames[0]
+  if (name === undefined) return []
   const sheet = workBook.Sheets[name]
+  if (sheet === undefined) return []
 
   const items: Item[] = []
 
