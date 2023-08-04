@@ -1,10 +1,6 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
 import { CellObject, read } from 'xlsx'
 import { styled } from '../styled-system/jsx'
-import {
-  decode as decodeMsgpack,
-  encode as encodeMsgpack,
-} from '@msgpack/msgpack'
 import { css } from '../styled-system/css'
 
 type Item = {
