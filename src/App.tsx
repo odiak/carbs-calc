@@ -226,7 +226,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           <thead>
             <tr>
               <th>食品名</th>
-              <th>炭水化物量(%)</th>
+              <th>炭水化物量</th>
               <th>重量(g)</th>
               <td></td>
             </tr>
@@ -235,7 +235,10 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             {items.map((item, i) => (
               <tr key={i}>
                 <td>{item.name}</td>
-                <td>{item.carbs}%</td>
+                <td>
+                  {((item.amount * item.carbs) / 100).toFixed(1)}g
+                  <br />({item.carbs}%)
+                </td>
                 <td>
                   <styled.input
                     type="number"
