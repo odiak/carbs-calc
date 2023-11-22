@@ -1,5 +1,6 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
 import { CellObject, read } from 'xlsx'
+import { Box, Typography } from '@mui/joy'
 
 type Item = {
   name: string
@@ -19,11 +20,19 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <div style={{ padding: '0 8px' }}>
-      <h1>炭水化物量計算くん</h1>
-      <p>
+    <Box sx={{ mx: 'auto', maxWidth: 600, px: 1, pt: 1 }}>
+      <Typography
+        level="h1"
+        fontSize={24}
+        mb={1}
+        textAlign="center"
+        textColor="neutral.700"
+      >
+        炭水化物量計算くん
+      </Typography>
+      <Typography level="body-md" mb={1}>
         いくつか食材を選んでその重量を入力すると、合計の炭水化物量が分かります。
-      </p>
+      </Typography>
       <details style={{ marginBottom: 16 }}>
         <summary>その他の説明</summary>
         <div
@@ -57,7 +66,7 @@ export const App: FC = () => {
       ) : (
         <Calculator allItems={items} />
       )}
-    </div>
+    </Box>
   )
 }
 
