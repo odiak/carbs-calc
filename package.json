@@ -6,7 +6,10 @@
     "build": "parcel build src/index.html"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
+    "@mui/joy": "^5.0.0-beta.15",
     "firebase": "^10.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
