@@ -278,9 +278,11 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           </tr>
         </tbody>
         <tfoot>
-          <th scope="row">合計</th>
-          <td>{total.toFixed(1)}g</td>
-          <td colSpan={2} />
+          <tr>
+            <th scope="row">合計</th>
+            <td>{total.toFixed(1)}g</td>
+            <td colSpan={2} />
+          </tr>
         </tfoot>
       </Table>
 
