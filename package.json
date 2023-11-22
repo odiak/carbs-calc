@@ -3,8 +3,7 @@
   "packageManager": "yarn@3.6.1",
   "scripts": {
     "start": "wrangler pages dev --local --compatibility-date=2023-07-03 -- parcel serve src/index.html",
-    "build": "parcel build src/index.html",
-    "postinstall": "panda codegen"
+    "build": "parcel build src/index.html"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.0.0-beta2",
@@ -15,12 +14,10 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230518.0",
-    "@pandacss/dev": "^0.5.1",
     "@parcel/core": "^2.9.3",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "parcel": "2.9.3",
-    "postcss": "^8.4.24",
     "prettier": "^2.8.8",
     "process": "^0.11.10",
     "typescript": "^5.1.6"

@@ -1,7 +1,5 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
 import { CellObject, read } from 'xlsx'
-import { styled } from '../styled-system/jsx'
-import { css } from '../styled-system/css'
 
 type Item = {
   name: string
@@ -21,20 +19,19 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <styled.div px={2}>
-      <styled.h1 fontSize="x-large">炭水化物量計算くん</styled.h1>
+    <div style={{ padding: '0 8px' }}>
+      <h1>炭水化物量計算くん</h1>
       <p>
         いくつか食材を選んでその重量を入力すると、合計の炭水化物量が分かります。
       </p>
-      <details className={css({ mb: 4 })}>
+      <details style={{ marginBottom: 16 }}>
         <summary>その他の説明</summary>
         <div
-          className={css({
-            border: '1px solid',
-            borderColor: 'gray.400',
-            rounded: 6,
-            p: 2,
-          })}
+          style={{
+            border: '1px solid gray',
+            borderRadius: 6,
+            padding: 8,
+          }}
         >
           <p>
             食材が検索できない場合は、キーワードや表記を変えて試してみてください。
@@ -60,7 +57,7 @@ export const App: FC = () => {
       ) : (
         <Calculator allItems={items} />
       )}
-    </styled.div>
+    </div>
   )
 }
 
@@ -204,14 +201,14 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   return (
     <>
       <div>
-        <styled.input
+        <input
           type="text"
           value={searchText}
           onChange={(e) => updateSearchText(e.target.value)}
           placeholder="食品名を入力してください"
           onKeyDown={onKeyDown}
-          htmlSize={60}
-          maxW="95%"
+          size={60}
+          style={{ maxWidth: '95%' }}
         />
         <div>
           {suggestions.map((item, i) => (
@@ -240,13 +237,13 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                   <br />({item.carbs}%)
                 </td>
                 <td>
-                  <styled.input
+                  <input
                     type="number"
                     min="0"
                     step="1"
                     value={item.amount}
                     onChange={(e) => setAmount(i, Number(e.target.value || 0))}
-                    maxW={50}
+                    style={{ maxWidth: 50 }}
                   />
                 </td>
                 <td>
@@ -291,29 +288,29 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
       <hr />
 
-      <button onClick={reset} className={css({ mr: 2 })}>
+      <button onClick={reset} style={{ marginRight: 8 }}>
         リセット
       </button>
       <button onClick={copyLink}>リンクをコピーする</button>
       {showingToast && (
         <div
-          className={css({
+          style={{
             position: 'fixed',
             bottom: 0,
             left: 0,
             width: '100%',
-            p: 2,
-          })}
+            padding: 8,
+          }}
         >
           <div
-            className={css({
-              mx: 'auto',
-              bg: 'gray.900',
-              color: 'gray.100',
+            style={{
+              margin: '0 auto',
+              background: '#777',
+              color: '#f5f5f5',
               width: 'max-content',
-              p: 2,
-              rounded: 4,
-            })}
+              padding: 8,
+              borderRadius: 4,
+            }}
           >
             コピーしました
           </div>
