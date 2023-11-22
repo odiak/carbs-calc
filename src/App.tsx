@@ -326,6 +326,7 @@ async function decode(str: string): Promise<unknown> {
   return decodeMsgpack(Uint8Array.from([...raw].map((r) => r.charCodeAt(0))))
 }
 
+/** for past compatibility */
 async function decodeHash(
   hash: string,
   allItems: Item[]
