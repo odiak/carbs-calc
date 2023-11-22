@@ -1,6 +1,15 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
 import { CellObject, read } from 'xlsx'
-import { Box, Typography } from '@mui/joy'
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Input,
+  Snackbar,
+  Stack,
+  Table,
+  Typography,
+} from '@mui/joy'
 
 type Item = {
   name: string
@@ -20,7 +29,7 @@ export const App: FC = () => {
   }, [])
 
   return (
-    <Box sx={{ mx: 'auto', maxWidth: 600, px: 1, pt: 1 }}>
+    <Box sx={{ mx: 'auto', maxWidth: 600, p: 1 }}>
       <Typography
         level="h1"
         fontSize={24}
@@ -78,14 +87,13 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     []
   )
 
-  const [searchText, setSearchText] = useState('')
-  const [suggestions, setSuggestions] = useState<Item[]>([])
+  const [item, setItem] = useState<Item | null>(null)
   const [items, setItems] = useState<ItemWithAmount[]>(
     dataFromSearch?.items ?? []
   )
   const [carbRatio, setCarbRatio] = useState(dataFromSearch.carbRatio)
 
-  const [showingToast, setShowingToast] = useState(false)
+  const [showingSnackbar, setShowingSnackbar] = useState(false)
 
   const updateSearch = (
     items: ItemWithAmount[],
@@ -137,39 +145,6 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     }
   }, [allItems])
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
-      setSuggestions([])
-    }
-  }
-
-  const updateSearchText = (text: string) => {
-    setSearchText(text)
-
-    const trimmedText = text.trim()
-
-    if (trimmedText === '') {
-      setSuggestions([])
-      return
-    }
-
-    const keywords = trimmedText.split(/\s+/)
-
-    setSuggestions(
-      allItems.filter((item) => keywords.every((kw) => item.name.includes(kw)))
-    )
-  }
-
-  const selectItem = (item: Item) => {
-    setItems((items) => {
-      const newItems = [...items, { ...item, amount: 0 }]
-      updateSearch(newItems, carbRatio)
-      return newItems
-    })
-    setSearchText('')
-    setSuggestions([])
-  }
-
   const setAmount = (i: number, amount: number) => {
     setItems((items) => {
       const newItems = [...items]
@@ -193,8 +168,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   const copyLink = () => {
     navigator.clipboard.writeText(location.href)
-    setShowingToast(true)
-    setTimeout(() => setShowingToast(false), 2000)
+    setShowingSnackbar(true)
   }
 
   const reset = () => {
@@ -203,66 +177,81 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     updateSearch([], 0)
   }
 
+  const getOptionLabel = (item: Item) => `${item.name} (${item.carbs}%)`
+
+  const onSelectItem = (item: Item) => {
+    setItems((items) => {
+      const newItems = [...items, { ...item, amount: 0 }]
+      updateSearch(newItems, carbRatio)
+      return newItems
+    })
+  }
+
   const total = items
     .map((item) => (item.amount * item.carbs) / 100)
     .reduce((sum, c) => sum + c, 0)
 
   return (
     <>
-      <div>
-        <input
-          type="text"
-          value={searchText}
-          onChange={(e) => updateSearchText(e.target.value)}
-          placeholder="食品名を入力してください"
-          onKeyDown={onKeyDown}
-          size={60}
-          style={{ maxWidth: '95%' }}
-        />
-        <div>
-          {suggestions.map((item, i) => (
-            <div key={i} onClick={() => selectItem(item)}>
-              {item.name} ({item.carbs}%)
-            </div>
-          ))}
-        </div>
-      </div>
-      {items.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>食品名</th>
-              <th>炭水化物量</th>
-              <th>重量(g)</th>
-              <td></td>
+      <Table>
+        <thead>
+          <tr>
+            <th style={{ width: '50%' }}>食品名</th>
+            <th>炭水化物量</th>
+            <th>重量(g)</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, i) => (
+            <tr key={i}>
+              <td>{item.name}</td>
+              <td>
+                {((item.amount * item.carbs) / 100).toFixed(1)}g
+                <br />({item.carbs}%)
+              </td>
+              <td>
+                <Input
+                  fullWidth
+                  size="sm"
+                  slotProps={{
+                    input: {
+                      type: 'number',
+                      min: 0,
+                      step: 1,
+                      value: item.amount,
+                      onChange: (e) =>
+                        setAmount(i, Number(e.target.value || 0)),
+                    },
+                  }}
+                />
+              </td>
+              <td>
+                <button onClick={() => deleteItem(i)}>削除</button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td>{item.name}</td>
-                <td>
-                  {((item.amount * item.carbs) / 100).toFixed(1)}g
-                  <br />({item.carbs}%)
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={item.amount}
-                    onChange={(e) => setAmount(i, Number(e.target.value || 0))}
-                    style={{ maxWidth: 50 }}
-                  />
-                </td>
-                <td>
-                  <button onClick={() => deleteItem(i)}>削除</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+          <tr>
+            <td colSpan={4}>
+              <Autocomplete
+                size="sm"
+                options={allItems}
+                getOptionLabel={getOptionLabel}
+                placeholder="追加する食品名を入力してください"
+                forcePopupIcon={false}
+                blurOnSelect
+                value={item}
+                onChange={(_, value) => {
+                  if (value) {
+                    onSelectItem(value)
+                    setItem(null)
+                  }
+                }}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </Table>
 
       {items.length === 0 ? (
         <p>食品を選択してください</p>
@@ -297,34 +286,23 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
       <hr />
 
-      <button onClick={reset} style={{ marginRight: 8 }}>
-        リセット
-      </button>
-      <button onClick={copyLink}>リンクをコピーする</button>
-      {showingToast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            padding: 8,
-          }}
-        >
-          <div
-            style={{
-              margin: '0 auto',
-              background: '#777',
-              color: '#f5f5f5',
-              width: 'max-content',
-              padding: 8,
-              borderRadius: 4,
-            }}
-          >
-            コピーしました
-          </div>
-        </div>
-      )}
+      <Stack direction="row" spacing={1}>
+        <Button size="sm" color="neutral" onClick={reset}>
+          リセット
+        </Button>
+        <Button size="sm" color="neutral" onClick={copyLink}>
+          リンクをコピーする
+        </Button>
+      </Stack>
+
+      <Snackbar
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        open={showingSnackbar}
+        onClose={() => setShowingSnackbar(false)}
+        autoHideDuration={2000}
+      >
+        コピーしました
+      </Snackbar>
     </>
   )
 }
