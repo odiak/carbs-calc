@@ -494,5 +494,22 @@ function hiraganaToKatakana(str: string): string {
 function variants(str: string): string[] {
   const hiragana = katakanaToHiragana(str)
   const katakana = hiraganaToKatakana(str)
-  return [...new Set([str, hiragana, katakana])]
+  return [
+    ...new Set(
+      [str, hiragana, katakana].flatMap((w) => {
+        const s = synonyms[w]
+        return s === undefined ? [w] : [w, ...s]
+      })
+    ),
+  ]
+}
+
+const synonyms: Record<string, string[]> = {
+  人参: ['にんじん'],
+  片栗粉: ['でん粉類'],
+  かたくりこ: ['でん粉類'],
+  パイナップル: ['パインアップル'],
+  ご飯: ['めし'],
+  ごはん: ['めし'],
+  ホットケーキミックス: ['プレミックス粉　ホットケーキ用'],
 }
