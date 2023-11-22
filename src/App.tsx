@@ -16,6 +16,8 @@ import {
   styled,
 } from '@mui/joy'
 
+import { FilterOptionsState } from '@mui/base/useAutocomplete'
+
 type Item = {
   name: string
   carbs: number
@@ -188,6 +190,27 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   const getOptionLabel = (item: Item) => `${item.name} (${item.carbs}%)`
 
+  const filterOptions = (
+    options: Item[],
+    { inputValue }: FilterOptionsState<Item>
+  ) => {
+    const trimmedInput = inputValue.trim()
+
+    let filtered: Item[]
+    if (trimmedInput === '') {
+      filtered = options
+    } else {
+      const keywords = trimmedInput.split(/\s+/)
+      filtered = options.filter((option) =>
+        keywords.every((keyword) =>
+          variants(keyword).some((v) => option.name.includes(v))
+        )
+      )
+    }
+
+    return filtered.slice(0, 100)
+  }
+
   const onSelectItem = (item: Item) => {
     setItems((items) => {
       const newItems = [...items, { ...item, amount: 0 }]
@@ -259,10 +282,18 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           ))}
           <tr>
             <td colSpan={4}>
+              <Typography textAlign="center" textColor="neutral.500">
+                食品が追加されていません
+              </Typography>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={4}>
               <Autocomplete
                 size="sm"
                 options={allItems}
                 getOptionLabel={getOptionLabel}
+                filterOptions={filterOptions}
                 placeholder="追加する食品名を入力してください"
                 forcePopupIcon={false}
                 blurOnSelect
@@ -446,4 +477,22 @@ async function getItems(signal?: AbortSignal): Promise<Item[]> {
   }
 
   return items
+}
+
+function katakanaToHiragana(str: string): string {
+  return str.replace(/[\u30a1-\u30f6]/g, (match) =>
+    String.fromCharCode(match.charCodeAt(0) - 0x60)
+  )
+}
+
+function hiraganaToKatakana(str: string): string {
+  return str.replace(/[\u3041-\u3096]/g, (match) =>
+    String.fromCharCode(match.charCodeAt(0) + 0x60)
+  )
+}
+
+function variants(str: string): string[] {
+  const hiragana = katakanaToHiragana(str)
+  const katakana = hiraganaToKatakana(str)
+  return [...new Set([str, hiragana, katakana])]
 }
