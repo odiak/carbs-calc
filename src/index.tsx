@@ -10,7 +10,7 @@ const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG ?? '')
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-if (location.hostname !== 'localhost') {
+if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
   getAnalytics(app)
 }
 
