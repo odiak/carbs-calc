@@ -4,11 +4,16 @@ import {
   Autocomplete,
   Box,
   Button,
+  Card,
+  FormControl,
+  FormLabel,
   Input,
+  Link,
   Snackbar,
   Stack,
   Table,
   Typography,
+  styled,
 } from '@mui/joy'
 
 type Item = {
@@ -33,41 +38,43 @@ export const App: FC = () => {
       <Typography
         level="h1"
         fontSize={24}
-        mb={1}
+        mt={2}
+        mb={2}
         textAlign="center"
         textColor="neutral.700"
       >
         炭水化物量計算くん
       </Typography>
-      <Typography level="body-md" mb={1}>
+
+      <Typography mb={1}>
         いくつか食材を選んでその重量を入力すると、合計の炭水化物量が分かります。
       </Typography>
-      <details style={{ marginBottom: 16 }}>
-        <summary>その他の説明</summary>
-        <div
-          style={{
-            border: '1px solid gray',
-            borderRadius: 6,
-            padding: 8,
-          }}
-        >
-          <p>
+
+      <details>
+        <summary>
+          <Typography display="inline-block" mb={1}>
+            もっと詳しく
+          </Typography>
+        </summary>
+
+        <Card variant="soft" sx={{ mb: 2 }}>
+          <Typography mb={1}>
             食材が検索できない場合は、キーワードや表記を変えて試してみてください。
             <br />
             （例: 片栗粉→でん粉、人参→にんじん）
-          </p>
-          <p>
+          </Typography>
+          <Typography mb={1}>
             このページのリンクを誰かに送ると、内容をシェアすることができます。
             <br />
             (シェアした後に編集しても相手には反映されません。)
-          </p>
-          <p>
-            <a href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_01110.html">
-              日本食品標準成分表2020年版（八訂）
-            </a>
+          </Typography>
+          <Typography>
+            <Link href="https://www.mext.go.jp/a_menu/syokuhinseibun/mext_01110.html">
+              日本食品標準成分表2020年版(八訂)
+            </Link>
             のデータを使用しています。
-          </p>
-        </div>
+          </Typography>
+        </Card>
       </details>
 
       {items === undefined ? (
@@ -80,6 +87,8 @@ export const App: FC = () => {
 }
 
 const dataVersion = 2020
+
+const Th = styled('th')``
 
 const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const dataFromSearch = useMemo(
@@ -196,9 +205,18 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       <Table>
         <thead>
           <tr>
-            <th style={{ width: '50%' }}>食品名</th>
+            <Th
+              sx={{
+                width: '50%',
+                '@media (max-width: 500px)': {
+                  width: '30%',
+                },
+              }}
+            >
+              食品名
+            </Th>
             <th>炭水化物量</th>
-            <th>重量(g)</th>
+            <th>重量</th>
             <th />
           </tr>
         </thead>
@@ -214,6 +232,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                 <Input
                   fullWidth
                   size="sm"
+                  endDecorator="g"
                   slotProps={{
                     input: {
                       type: 'number',
@@ -227,7 +246,14 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                 />
               </td>
               <td>
-                <button onClick={() => deleteItem(i)}>削除</button>
+                <Button
+                  size="sm"
+                  color="neutral"
+                  variant="solid"
+                  onClick={() => deleteItem(i)}
+                >
+                  削除
+                </Button>
               </td>
             </tr>
           ))}
@@ -251,40 +277,41 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             </td>
           </tr>
         </tbody>
+        <tfoot>
+          <th scope="row">合計</th>
+          <td>{total.toFixed(1)}g</td>
+          <td colSpan={2} />
+        </tfoot>
       </Table>
 
-      {items.length === 0 ? (
-        <p>食品を選択してください</p>
-      ) : (
-        <>
-          <hr />
-          <p>合計炭水化物量: {total.toFixed(1)}g</p>
-        </>
-      )}
-
-      <hr />
-
-      <div>
-        <label>
-          糖質インスリン比(g/U):{' '}
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={carbRatio}
-            onChange={(e) => {
-              const newCarbRatio = Number(e.target.value || 0)
-              setCarbRatio(newCarbRatio)
-              updateSearch(items, newCarbRatio)
+      <Card variant="outlined" size="sm" sx={{ my: 3 }}>
+        <FormControl orientation="horizontal">
+          <FormLabel>糖質インスリン比</FormLabel>
+          <Input
+            size="sm"
+            endDecorator="g/U"
+            slotProps={{
+              input: {
+                type: 'number',
+                min: 0,
+                step: 1,
+                value: carbRatio,
+                onChange: (e) => {
+                  const newCarbRatio = Number(e.target.value || 0)
+                  setCarbRatio(newCarbRatio)
+                  updateSearch(items, newCarbRatio)
+                },
+              },
             }}
           />
-        </label>
-        {carbRatio !== 0 && items.length !== 0 && (
-          <p>インスリン量: {(total / carbRatio).toFixed(2)}U</p>
-        )}
-      </div>
+        </FormControl>
 
-      <hr />
+        {carbRatio !== 0 && items.length !== 0 && (
+          <Typography>
+            インスリン量: {(total / carbRatio).toFixed(2)}U
+          </Typography>
+        )}
+      </Card>
 
       <Stack direction="row" spacing={1}>
         <Button size="sm" color="neutral" onClick={reset}>
