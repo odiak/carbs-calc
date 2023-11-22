@@ -202,7 +202,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   return (
     <>
-      <Table>
+      <Table variant="outlined">
         <thead>
           <tr>
             <Th
@@ -284,7 +284,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
         </tfoot>
       </Table>
 
-      <Card variant="outlined" size="sm" sx={{ my: 3 }}>
+      <Card variant="soft" size="sm" sx={{ my: 3 }}>
         <FormControl orientation="horizontal">
           <FormLabel>糖質インスリン比</FormLabel>
           <Input
