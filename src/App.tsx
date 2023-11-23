@@ -280,13 +280,15 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
               </td>
             </tr>
           ))}
-          <tr>
-            <td colSpan={4}>
-              <Typography textAlign="center" textColor="neutral.500">
-                食品が追加されていません
-              </Typography>
-            </td>
-          </tr>
+          {items.length === 0 && (
+            <tr>
+              <td colSpan={4}>
+                <Typography textAlign="center" textColor="neutral.500">
+                  食品が追加されていません
+                </Typography>
+              </td>
+            </tr>
+          )}
           <tr>
             <td colSpan={4}>
               <Autocomplete
