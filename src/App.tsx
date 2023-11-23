@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   FormControl,
+  FormHelperText,
   FormLabel,
   Input,
   Link,
@@ -340,6 +341,11 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             }}
           />
         </FormControl>
+        {(carbRatio === 0 || items.length === 0) && (
+          <FormHelperText>
+            糖質インスリン比を設定した状態で食品を選択すると、投与するインスリンの量が下に表示されます
+          </FormHelperText>
+        )}
 
         {carbRatio !== 0 && items.length !== 0 && (
           <Typography>
