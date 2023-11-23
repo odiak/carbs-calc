@@ -226,7 +226,15 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   return (
     <>
-      <Table variant="outlined">
+      <Table
+        variant="outlined"
+        sx={{
+          '& > thead > tr > th': {
+            whiteSpace: 'normal',
+            verticalAlign: 'middle',
+          },
+        }}
+      >
         <thead>
           <tr>
             <Th
