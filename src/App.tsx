@@ -63,8 +63,6 @@ export const App: FC = () => {
         <Card variant="soft" sx={{ mb: 2 }}>
           <Typography mb={1}>
             食材が検索できない場合は、キーワードや表記を変えて試してみてください。
-            <br />
-            （例: 片栗粉→でん粉、人参→にんじん）
           </Typography>
           <Typography mb={1}>
             このページのリンクを誰かに送ると、内容をシェアすることができます。
