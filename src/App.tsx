@@ -1,5 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from 'react'
-import { CellObject, read } from 'xlsx'
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Autocomplete,
   Box,
@@ -457,39 +456,10 @@ function useEffectWithAbortSignal(
 }
 
 async function getItems(signal?: AbortSignal): Promise<Item[]> {
-  const res = await fetch('/data', { signal })
-  const buf = await res.arrayBuffer()
-  const workBook = read(buf)
-
-  const name = workBook.SheetNames[0]
-  if (name === undefined) return []
-  const sheet = workBook.Sheets[name]
-  if (sheet === undefined) return []
-
-  const items: Item[] = []
-
-  for (const key of Object.keys(sheet)) {
-    if (!key.startsWith('D')) continue
-    const name = (sheet[key] as CellObject).w
-
-    const row = Number(key.slice(1))
-    if (row < 13) continue
-
-    const code = (sheet[`B${row}`] as CellObject).w
-    const index = Number((sheet[`C${row}`] as CellObject).w ?? Number.NaN) - 1
-
-    if (name === undefined || code === undefined || Number.isNaN(index))
-      continue
-
-    const carbsText = ['Q', 'N', 'P']
-      .map((col) => sheet[`${col}${row}`] as CellObject | undefined)
-      .map((cell) => cell?.w?.match(/\d+(?:\.\d+)?/)?.[0])
-      .find((v) => v !== undefined)
-    const carbs = Number(carbsText ?? '0')
-
-    items.push({ name, carbs, index, code })
-  }
-
+  const res = await fetch('https://r2.carbs-calc.odiak.net/data.json', {
+    signal,
+  })
+  const { items }: { items: Item[] } = await res.json()
   return items
 }
 
