@@ -3,7 +3,8 @@
   "packageManager": "yarn@3.6.1",
   "scripts": {
     "start": "wrangler pages dev --local --compatibility-date=2023-07-03 -- parcel serve src/index.html",
-    "build": "parcel build src/index.html"
+    "build": "parcel build src/index.html",
+    "generate-data": "tsx scripts/data.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -23,6 +24,7 @@
     "parcel": "2.9.3",
     "prettier": "^2.8.8",
     "process": "^0.11.10",
+    "tsx": "^4.7.0",
     "typescript": "^5.1.6"
   }
 }

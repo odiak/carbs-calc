@@ -10,3 +10,6 @@ dist
 styled-system
 
 .env.development
+.wrangler
+
+data.json
