@@ -2,7 +2,7 @@
   "name": "carbs-calc",
   "packageManager": "yarn@3.6.1",
   "scripts": {
-    "start": "wrangler pages dev --local --compatibility-date=2023-07-03 -- parcel serve src/index.html",
+    "start": "wrangler pages dev --compatibility-date=2024-01-10 -- parcel serve src/index.html",
     "build": "parcel build src/index.html",
     "generate-data": "tsx scripts/data.ts"
   },
