@@ -26,7 +26,7 @@ type Item = {
   code: string
 }
 
-type ItemWithAmount = Item & { amount: number }
+type ItemWithAmount = Item & { amount: number | undefined }
 
 export const App: FC = () => {
   const [items, setItems] = useState<Item[] | undefined>()
@@ -117,19 +117,26 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     const path = location.pathname
 
     const newItems = options.items ?? items
-    const newCarbRatio = options.carbRatio ?? carbRatio
+    const newCarbRatio = options.carbRatio ?? carbRatio ?? 0
     const newNote = options.note ?? note
 
     if (newItems.length === 0 && newCarbRatio === 0) {
-      history.pushState(null, '', path)
+      if (replace) {
+        history.replaceState(null, '', path)
+      } else {
+        history.pushState(null, '', path)
+      }
       return
     }
 
-    const search = new URLSearchParams({
-      is: newItems.map((it) => `${it.code}*${it.amount}`).join('-'),
+    const params = new URLSearchParams({
+      is: newItems.map((it) => `${it.code}*${it.amount ?? 0}`).join('-'),
       n: newNote,
-      icr: String(newCarbRatio),
-    }).toString()
+    })
+    if (newCarbRatio !== 0) {
+      params.set('icr', String(newCarbRatio))
+    }
+    const search = params.toString()
 
     const url = `${path}?${search}`
     if (replace) {
@@ -165,7 +172,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     }
   }, [allItems])
 
-  const setAmount = (i: number, amount: number) => {
+  const setAmount = (i: number, amount: number | undefined) => {
     setItems((items) => {
       const newItems = [...items]
       const item = items[i]
@@ -223,14 +230,14 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
 
   const onSelectItem = (item: Item) => {
     setItems((items) => {
-      const newItems = [...items, { ...item, amount: 0 }]
+      const newItems = [...items, { ...item, amount: undefined }]
       updateSearch({ items: newItems })
       return newItems
     })
   }
 
   const total = items
-    .map((item) => (item.amount * item.carbs) / 100)
+    .map((item) => ((item.amount ?? 0) * item.carbs) / 100)
     .reduce((sum, c) => sum + c, 0)
 
   return (
@@ -266,7 +273,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
             <tr key={i}>
               <td>{item.name}</td>
               <td>
-                {((item.amount * item.carbs) / 100).toFixed(1)}g
+                {(((item.amount ?? 0) * item.carbs) / 100).toFixed(1)}g
                 <br />({item.carbs}%)
               </td>
               <td>
@@ -279,9 +286,11 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                       type: 'number',
                       min: 0,
                       step: 1,
-                      value: item.amount,
-                      onChange: (e) =>
-                        setAmount(i, Number(e.target.value || 0)),
+                      value: item.amount ?? '',
+                      onChange: (e) => {
+                        const v = e.target.value
+                        setAmount(i, v === '' ? undefined : Number(v))
+                      },
                     },
                   }}
                 />
@@ -365,23 +374,24 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                 type: 'number',
                 min: 0,
                 step: 1,
-                value: carbRatio,
+                value: carbRatio ?? '',
                 onChange: (e) => {
-                  const newCarbRatio = Number(e.target.value || 0)
+                  const v = e.target.value
+                  const newCarbRatio = v === '' ? undefined : Number(v)
                   setCarbRatio(newCarbRatio)
-                  updateSearch({ carbRatio: newCarbRatio })
+                  updateSearch({ carbRatio: newCarbRatio ?? 0 })
                 },
               },
             }}
           />
         </FormControl>
-        {(carbRatio === 0 || items.length === 0) && (
+        {((carbRatio ?? 0) === 0 || items.length === 0) && (
           <FormHelperText>
             糖質インスリン比を設定した状態で食品を選択すると、投与するインスリンの量が下に表示されます
           </FormHelperText>
         )}
 
-        {carbRatio !== 0 && items.length !== 0 && (
+        {carbRatio !== undefined && carbRatio !== 0 && items.length !== 0 && (
           <Typography>
             インスリン量: {(total / carbRatio).toFixed(2)}U
           </Typography>
@@ -452,7 +462,7 @@ async function decodeHash(
 function decodeSearch(
   search: string,
   allItems: Item[]
-): { items: ItemWithAmount[]; carbRatio: number; note: string } {
+): { items: ItemWithAmount[]; carbRatio: number | undefined; note: string } {
   const params = new URLSearchParams(search)
   const itemsStr = params.get('is') ?? ''
   const carbRatioStr = params.get('icr')
@@ -467,7 +477,7 @@ function decodeSearch(
     items.push({ ...item, amount })
   }
 
-  const carbRatio = Number(carbRatioStr ?? 0) || 0
+  const carbRatio = carbRatioStr === null ? undefined : Number(carbRatioStr)
 
   return { items, carbRatio, note }
 }
@@ -508,17 +518,18 @@ function hiraganaToKatakana(str: string): string {
 function variants(str: string): string[] {
   const hiragana = katakanaToHiragana(str)
   const katakana = hiraganaToKatakana(str)
+
   return [
     ...new Set(
       [str, hiragana, katakana].flatMap((w) => {
-        const s = synonyms[w]
-        return s === undefined ? [w] : [w, ...s]
+        const s = synonyms.flatMap(([k, alts]) => (k.startsWith(w) ? alts : []))
+        return [w, ...s]
       })
     ),
   ]
 }
 
-const synonyms: Record<string, string[]> = {
+const synonyms = Object.entries({
   ご飯: ['めし'],
   ごはん: ['めし'],
   ライス: ['めし'],
@@ -532,4 +543,8 @@ const synonyms: Record<string, string[]> = {
   ホットケーキミックス: ['プレミックス粉　ホットケーキ用'],
 
   パイナップル: ['パインアップル'],
-}
+  桃: ['もも'],
+  苺: ['いちご'],
+
+  スキムミルク: ['脱脂粉乳'],
+})
