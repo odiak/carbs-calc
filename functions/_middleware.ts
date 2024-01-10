@@ -44,7 +44,7 @@ export const onRequest: PagesFunction = async (context) => {
   const icr = Number(params.get('icr') ?? 0)
   if (icr > 0) {
     const insulin = totalCarbs / icr
-    texts.push(`インスリン量: ${insulin.toFixed(1)}U`)
+    texts.push(`インスリン量: ${insulin.toFixed(2)}U`)
   }
 
   const description = texts.join('\n')
