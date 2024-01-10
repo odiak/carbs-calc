@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react'
+import React, { FC, useEffect, useMemo, useState } from 'react'
 import {
   Autocomplete,
   Box,
@@ -12,6 +12,7 @@ import {
   Snackbar,
   Stack,
   Table,
+  Textarea,
   Typography,
   styled,
 } from '@mui/joy'
@@ -100,25 +101,34 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const [items, setItems] = useState<ItemWithAmount[]>(
     dataFromSearch?.items ?? []
   )
+  const [note, setNote] = useState<string>(dataFromSearch.note)
   const [carbRatio, setCarbRatio] = useState(dataFromSearch.carbRatio)
 
   const [showingSnackbar, setShowingSnackbar] = useState(false)
 
   const updateSearch = (
-    items: ItemWithAmount[],
-    carbRatio: number,
+    options: Partial<{
+      items: ItemWithAmount[]
+      carbRatio: number
+      note: string
+    }>,
     replace?: boolean
   ) => {
     const path = location.pathname
 
-    if (items.length === 0 && carbRatio === 0) {
+    const newItems = options.items ?? items
+    const newCarbRatio = options.carbRatio ?? carbRatio
+    const newNote = options.note ?? note
+
+    if (newItems.length === 0 && newCarbRatio === 0) {
       history.pushState(null, '', path)
       return
     }
 
     const search = new URLSearchParams({
-      is: items.map((it) => `${it.code}*${it.amount}`).join('-'),
-      icr: String(carbRatio),
+      is: newItems.map((it) => `${it.code}*${it.amount}`).join('-'),
+      n: newNote,
+      icr: String(newCarbRatio),
     }).toString()
 
     const url = `${path}?${search}`
@@ -134,6 +144,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       const dataFromSearch = decodeSearch(location.search, allItems)
       setItems(dataFromSearch.items)
       setCarbRatio(dataFromSearch.carbRatio)
+      setNote(dataFromSearch.note)
     }
     window.addEventListener('popstate', onPopState)
 
@@ -144,7 +155,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
           const { items, carbRatio } = data
           setItems(items)
           setCarbRatio(carbRatio)
-          updateSearch(items, carbRatio, true)
+          updateSearch({ items, carbRatio }, true)
         }
       })
     }
@@ -161,7 +172,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       if (item !== undefined) {
         newItems[i] = { ...item, amount }
       }
-      updateSearch(newItems, carbRatio, true)
+      updateSearch({ items: newItems }, true)
       return newItems
     })
   }
@@ -170,7 +181,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     setItems((items) => {
       const newItems = [...items]
       newItems.splice(i, 1)
-      updateSearch(newItems, carbRatio)
+      updateSearch({ items: newItems })
       return newItems
     })
   }
@@ -183,7 +194,8 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const reset = () => {
     setItems([])
     setCarbRatio(0)
-    updateSearch([], 0)
+    setNote('')
+    updateSearch({ items: [], carbRatio: 0, note: '' })
   }
 
   const getOptionLabel = (item: Item) => `${item.name} (${item.carbs}%)`
@@ -212,7 +224,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
   const onSelectItem = (item: Item) => {
     setItems((items) => {
       const newItems = [...items, { ...item, amount: 0 }]
-      updateSearch(newItems, carbRatio)
+      updateSearch({ items: newItems })
       return newItems
     })
   }
@@ -325,6 +337,23 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
         </tfoot>
       </Table>
 
+      <FormControl sx={{ my: 3 }}>
+        <FormLabel>メモ</FormLabel>
+        <Textarea
+          size="sm"
+          slotProps={{
+            textarea: {
+              value: note,
+              onChange: (e) => {
+                const newNote = e.target.value
+                setNote(newNote)
+                updateSearch({ note: newNote })
+              },
+            },
+          }}
+        />
+      </FormControl>
+
       <Card variant="soft" size="sm" sx={{ my: 3 }}>
         <FormControl orientation="horizontal">
           <FormLabel>糖質インスリン比</FormLabel>
@@ -340,7 +369,7 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
                 onChange: (e) => {
                   const newCarbRatio = Number(e.target.value || 0)
                   setCarbRatio(newCarbRatio)
-                  updateSearch(items, newCarbRatio)
+                  updateSearch({ carbRatio: newCarbRatio })
                 },
               },
             }}
@@ -423,10 +452,11 @@ async function decodeHash(
 function decodeSearch(
   search: string,
   allItems: Item[]
-): { items: ItemWithAmount[]; carbRatio: number } {
+): { items: ItemWithAmount[]; carbRatio: number; note: string } {
   const params = new URLSearchParams(search)
   const itemsStr = params.get('is') ?? ''
   const carbRatioStr = params.get('icr')
+  const note = params.get('n') ?? ''
 
   const items: ItemWithAmount[] = []
   for (const pair of itemsStr.split('-')) {
@@ -439,7 +469,7 @@ function decodeSearch(
 
   const carbRatio = Number(carbRatioStr ?? 0) || 0
 
-  return { items, carbRatio }
+  return { items, carbRatio, note }
 }
 
 function useEffectWithAbortSignal(

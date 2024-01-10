@@ -32,13 +32,22 @@ export const onRequest: PagesFunction = async (context) => {
     })
     .reduce((a, b) => a + b, 0)
 
-  let description = `炭水化物量: ${totalCarbs.toFixed(1)}g`
+  let texts: string[] = []
+
+  const note = params.get('n') ?? ''
+  if (note !== '') {
+    texts.push(`メモ: ${note}`)
+  }
+
+  texts.push(`炭水化物量: ${totalCarbs.toFixed(1)}g`)
 
   const icr = Number(params.get('icr') ?? 0)
   if (icr > 0) {
     const insulin = totalCarbs / icr
-    description += `\nインスリン量: ${insulin.toFixed(1)}U`
+    texts.push(`インスリン量: ${insulin.toFixed(1)}U`)
   }
+
+  const description = texts.join('\n')
 
   return new HTMLRewriter()
     .on('meta[property="og:description"]', {
