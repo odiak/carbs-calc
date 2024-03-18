@@ -26,7 +26,7 @@ type Item = {
   code: string
 }
 
-type ItemWithAmount = Item & { amount: number | undefined }
+type ItemWithAmount = Item & { amount?: number }
 
 export const App: FC = () => {
   const [items, setItems] = useState<Item[] | undefined>()
@@ -91,13 +91,13 @@ const dataVersion = 2020
 
 const Th = styled('th')``
 
-const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
+const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
   const dataFromSearch = useMemo(
     () => decodeSearch(location.search, allItems),
     []
   )
 
-  const [item, setItem] = useState<Item | null>(null)
+  const [item, setItem] = useState<ItemWithAmount | null>(null)
   const [items, setItems] = useState<ItemWithAmount[]>(
     dataFromSearch?.items ?? []
   )
@@ -205,19 +205,20 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
     updateSearch({ items: [], carbRatio: 0, note: '' })
   }
 
-  const getOptionLabel = (item: Item) => `${item.name} (${item.carbs}%)`
+  const getOptionLabel = (item: ItemWithAmount) =>
+    `${item.name} (${item.carbs}%)`
 
   const filterOptions = (
-    options: Item[],
+    options: ItemWithAmount[],
     { inputValue }: FilterOptionsState<Item>
-  ) => {
+  ): ItemWithAmount[] => {
     const trimmedInput = inputValue.trim()
 
     let filtered: Item[]
     if (trimmedInput === '') {
       filtered = options
     } else {
-      const keywords = trimmedInput.split(/\s+/)
+      const keywords = trimmedInput.split(/\s+/).filter((k) => !/^\d+$/.test(k))
       filtered = options.filter((option) =>
         keywords.every((keyword) =>
           variants(keyword).some((v) => option.name.includes(v))
@@ -225,12 +226,16 @@ const Calculator: FC<{ allItems: Item[] }> = ({ allItems }) => {
       )
     }
 
-    return filtered.slice(0, 100)
+    // If the input ends with a number, it'll be considered as the amount
+    const amountStr = trimmedInput.match(/\s(\d+)$/)?.[1]
+    const amount = amountStr === undefined ? undefined : Number(amountStr)
+
+    return filtered.slice(0, 100).map((item) => ({ ...item, amount }))
   }
 
-  const onSelectItem = (item: Item) => {
+  const onSelectItem = (item: ItemWithAmount) => {
     setItems((items) => {
-      const newItems = [...items, { ...item, amount: undefined }]
+      const newItems = [...items, { ...item }]
       updateSearch({ items: newItems })
       return newItems
     })
