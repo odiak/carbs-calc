@@ -1,9 +1,12 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
 import {
   Autocomplete,
+  AutocompleteOption,
+  AutocompleteRenderOptionState,
   Box,
   Button,
   Card,
+  Chip,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -18,6 +21,7 @@ import {
 } from '@mui/joy'
 
 import { FilterOptionsState } from '@mui/base/useAutocomplete'
+import { addRecentItem, getRecentItems } from './recentItems'
 
 type Item = {
   name: string
@@ -96,6 +100,8 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
     () => decodeSearch(location.search, allItems),
     []
   )
+
+  const recentItems = useMemo(() => getRecentItems(), [])
 
   const [item, setItem] = useState<ItemWithAmount | null>(null)
   const [items, setItems] = useState<ItemWithAmount[]>(
@@ -205,9 +211,6 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
     updateSearch({ items: [], carbRatio: 0, note: '' })
   }
 
-  const getOptionLabel = (item: ItemWithAmount) =>
-    `${item.name} (${item.carbs}%)`
-
   const filterOptions = (
     options: ItemWithAmount[],
     { inputValue }: FilterOptionsState<Item>
@@ -216,7 +219,11 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
 
     let filtered: Item[]
     if (trimmedInput === '') {
-      filtered = options
+      if (recentItems.size !== 0) {
+        filtered = options.filter((item) => recentItems.has(item.code))
+      } else {
+        filtered = options
+      }
     } else {
       const keywords = trimmedInput.split(/\s+/).filter((k) => !/^\d+$/.test(k))
       filtered = options.filter((option) =>
@@ -226,11 +233,19 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
       )
     }
 
+    filtered = filtered
+      .slice(0, 100)
+      .sort(
+        (a, b) =>
+          (recentItems.get(b.code) ?? 0) - (recentItems.get(a.code) ?? 0) ||
+          a.index - b.index
+      )
+
     // If the input ends with a number, it'll be considered as the amount
     const amountStr = trimmedInput.match(/\s(\d+)$/)?.[1]
     const amount = amountStr === undefined ? undefined : Number(amountStr)
 
-    return filtered.slice(0, 100).map((item) => ({ ...item, amount }))
+    return filtered.map((item) => ({ ...item, amount }))
   }
 
   const onSelectItem = (item: ItemWithAmount) => {
@@ -239,11 +254,31 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
       updateSearch({ items: newItems })
       return newItems
     })
+    addRecentItem(item.code)
   }
 
   const total = items
     .map((item) => ((item.amount ?? 0) * item.carbs) / 100)
     .reduce((sum, c) => sum + c, 0)
+
+  const renderOptions = (
+    props: any,
+    item: ItemWithAmount,
+    state: AutocompleteRenderOptionState
+  ) => {
+    const isRecent = recentItems.has(item.code)
+    const isEmpty = state.inputValue.trim() === ''
+    return (
+      <AutocompleteOption {...props}>
+        {item.name} ({item.carbs}%)
+        {isRecent && (
+          <Chip size="sm" color="primary">
+            最近使った
+          </Chip>
+        )}
+      </AutocompleteOption>
+    )
+  }
 
   return (
     <>
@@ -326,10 +361,10 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
               <Autocomplete
                 size="sm"
                 options={allItems}
-                getOptionLabel={getOptionLabel}
                 filterOptions={filterOptions}
                 placeholder="追加する食品名を入力してください"
                 forcePopupIcon={false}
+                renderOption={renderOptions}
                 blurOnSelect
                 value={item}
                 onChange={(_, value) => {
