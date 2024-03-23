@@ -20,6 +20,15 @@ const theme = extendTheme({
     display:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
   },
+  components: {
+    JoyButton: {
+      styleOverrides: {
+        root: ({ ownState }) => ({
+          fontWeight: 'normal',
+        }),
+      },
+    },
+  },
 })
 
 createRoot(document.getElementById('app')!).render(
