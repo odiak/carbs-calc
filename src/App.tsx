@@ -364,6 +364,7 @@ const Calculator: FC<{ allItems: ItemWithAmount[] }> = ({ allItems }) => {
                 filterOptions={filterOptions}
                 placeholder="追加する食品名を入力してください"
                 forcePopupIcon={false}
+                getOptionLabel={(item) => item.code}
                 renderOption={renderOptions}
                 blurOnSelect
                 value={item}
@@ -580,7 +581,8 @@ const synonyms = Object.entries({
 
   片栗粉: ['でん粉類'],
   かたくりこ: ['でん粉類'],
-  ホットケーキミックス: ['プレミックス粉　ホットケーキ用'],
+  ホットケーキミックス: ['プレミックス粉 ホットケーキ用'],
+  きなこ: ['きな粉'],
 
   パイナップル: ['パインアップル'],
   桃: ['もも'],

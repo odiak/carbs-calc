@@ -9,12 +9,22 @@ const storageKey = 'carbs-calc/recentItems'
 const maxRecentItems = 100
 const decayFactor = 0.99
 
-export function getRecentItems(): RecentItems {
-  if (recentItemsCache !== undefined) {
-    return recentItemsCache
+function handleStorageEvent(event: StorageEvent) {
+  if (event.key === storageKey && recentItemsCache !== undefined) {
+    const newRecentItems = loadRecentItems()
+    for (const [key, value] of newRecentItems) {
+      recentItemsCache.set(key, value)
+    }
+    for (const key of recentItemsCache.keys()) {
+      if (!newRecentItems.has(key)) {
+        recentItemsCache.delete(key)
+      }
+    }
   }
+}
 
-  recentItemsCache = new Map<string, number>()
+function loadRecentItems(): RecentItems {
+  const recentItems = new Map<string, number>()
 
   try {
     const recentItemsString = localStorage.getItem(storageKey)
@@ -22,13 +32,25 @@ export function getRecentItems(): RecentItems {
       const recentItemsObj = JSON.parse(recentItemsString)
       for (const [key, value] of Object.entries(recentItemsObj)) {
         if (typeof value === 'number') {
-          recentItemsCache.set(key, value)
+          recentItems.set(key, value)
         }
       }
     }
   } catch (e) {
     console.error('Failed to load recent items', e)
   }
+
+  return recentItems
+}
+
+export function getRecentItems(): RecentItems {
+  if (recentItemsCache !== undefined) {
+    return recentItemsCache
+  }
+
+  recentItemsCache = loadRecentItems()
+
+  window.addEventListener('storage', handleStorageEvent)
 
   return recentItemsCache
 }
