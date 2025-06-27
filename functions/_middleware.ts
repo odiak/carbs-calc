@@ -6,6 +6,12 @@ type Item = {
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url)
+  if (url.host === 'carbs-calc.pages.dev') {
+    const newUrl = new URL(url)
+    newUrl.host = 'carbs-calc.t1ckle.com'
+    return Response.redirect(newUrl.toString(), 301)
+  }
+
   const params = url.searchParams
   if (url.pathname !== '/' || params.size === 0) {
     return context.next()
